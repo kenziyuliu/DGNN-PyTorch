@@ -103,7 +103,8 @@ def get_parser():
         help='the arguments of data loader for test')
 
     # model
-    parser.add_argument('--model', default=None, help='the model will be used')
+    parser.add_argument(
+        '--model', default=None, help='the model will be used')
     parser.add_argument(
         '--model-args',
         type=dict,
@@ -135,7 +136,8 @@ def get_parser():
         default=0,
         nargs='+',
         help='the indexes of GPUs for training or testing')
-    parser.add_argument('--optimizer', default='SGD', help='type of optimizer')
+    parser.add_argument(
+        '--optimizer', default='SGD', help='type of optimizer')
     parser.add_argument(
         '--nesterov', type=str2bool, default=False, help='use nesterov or not')
     parser.add_argument(

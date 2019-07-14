@@ -49,6 +49,6 @@ if __name__ == '__main__':
                 if dataset != 'kinetics':
                     v1 -= 1
                     v2 -= 1
-                # Assign bones to be joint1 - joint2
+                # Assign bones to be joint1 - joint2, the pairs are pre-determined and hardcoded
                 # There also happens to be 25 bones
                 fp_sp[:, :, :, v1, :] = data[:, :, :, v1, :] - data[:, :, :, v2, :]

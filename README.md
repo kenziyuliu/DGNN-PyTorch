@@ -6,9 +6,13 @@ An unofficial PyTorch implementation of the paper "Skeleton-Based Action Recogni
 
 To be updated
 
+## Done
+
+- Implement graph module
+- Implement DGNN module (model architecture)
+
 ## TODO
 
-- Implement direct graph neural net module
 - Implement the 2nd (temporal) stream
 - Modify other parts of the original 2s-AGCN code base
-- ???
+- Test if everything works
