@@ -25,8 +25,6 @@ directed_edges = [(i-1, j-1) for i, j in [
 # NOTE: for now, let's not add self loops since the paper didn't mention this
 # self_loops = [(i, i) for i in range(num_nodes)]
 
-# incoming_edges = [(target, source) for source, target in outgoing_edges]
-
 
 def build_digraph_adj_list(edges: List[Tuple]) -> np.ndarray:
     graph = defaultdict(list)
@@ -85,12 +83,6 @@ class Graph:
         self.source_M, self.target_M = \
             build_digraph_incidence_matrix(self.num_nodes, self.edges)
 
-        # self.A = build_digraph_adj_matrix(outgoing_edges)
-        # self.in_edges = incoming_edges
-        # self.out_edges = outgoing_edges
-        # self.num_nodes = num_nodes
-        # self.self_loops = [(i, i) for i in range(self.num_nodes)]
-
 
 # TODO:
 # Check whether self loop should be added inside the graph
@@ -107,4 +99,3 @@ if __name__ == "__main__":
     plt.imshow(target_M, cmap='gray')
     plt.show()
     print(source_M)
-    # print()

@@ -15,7 +15,7 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 import shutil
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR
 import random
 import inspect
 import torch.backends.cudnn as cudnn
@@ -34,13 +34,14 @@ def init_seed(_):
 def get_parser():
     # parameter priority: command line > config > default
     parser = argparse.ArgumentParser(
-        description='Spatial Temporal Graph Convolution Network')
+        description='Directed Graph Neural Net for Skeleton Action Recognition')
     parser.add_argument(
         '--work-dir',
         default='./work_dir/temp',
         help='the work folder for storing results')
 
-    parser.add_argument('-model_saved_name', default='')
+    parser.add_argument(
+        '--model-saved-name', default='')
     parser.add_argument(
         '--config',
         default='./config/nturgbd-cross-view/test_bone.yaml',
@@ -91,7 +92,7 @@ def get_parser():
     parser.add_argument(
         '--num-worker',
         type=int,
-        default=32,
+        default=os.cpu_count(),
         help='the number of worker for data loader')
     parser.add_argument(
         '--train-feeder-args',
@@ -127,7 +128,7 @@ def get_parser():
     parser.add_argument(
         '--step',
         type=int,
-        default=[20, 40, 60],
+        default=[60, 90],
         nargs='+',
         help='the epoch where optimizer reduce the learning rate')
     parser.add_argument(
@@ -139,11 +140,11 @@ def get_parser():
     parser.add_argument(
         '--optimizer', default='SGD', help='type of optimizer')
     parser.add_argument(
-        '--nesterov', type=str2bool, default=False, help='use nesterov or not')
+        '--nesterov', type=str2bool, default=True, help='use nesterov or not')
     parser.add_argument(
-        '--batch-size', type=int, default=256, help='training batch size')
+        '--batch-size', type=int, default=32, help='training batch size')
     parser.add_argument(
-        '--test-batch-size', type=int, default=256, help='test batch size')
+        '--test-batch-size', type=int, default=32, help='test batch size')
     parser.add_argument(
         '--start-epoch',
         type=int,
@@ -152,24 +153,27 @@ def get_parser():
     parser.add_argument(
         '--num-epoch',
         type=int,
-        default=80,
+        default=120,
         help='stop training in which epoch')
     parser.add_argument(
         '--weight-decay',
         type=float,
-        default=0.0005,
+        default=0.0001,
         help='weight decay for optimizer')
-    parser.add_argument('--only_train_part', default=False)
-    parser.add_argument('--only_train_epoch', default=0)
-    parser.add_argument('--warm_up_epoch', default=0)
+    parser.add_argument(
+        '--freeze-graph-until',
+        type=int,
+        default=10,
+        help='number of epochs before making graphs learnable')
+
+    # parser.add_argument('--only_train_part', default=False)
+    # parser.add_argument('--only_train_epoch', default=0)
+    # parser.add_argument('--warm_up_epoch', default=0)
     return parser
 
 
 class Processor():
-    """
-        Processor for Skeleton-based Action Recgnition
-    """
-
+    """Processor for Skeleton-based Action Recgnition"""
     def __init__(self, arg):
         self.arg = arg
         self.save_arg()
@@ -177,23 +181,23 @@ class Processor():
             if not arg.train_feeder_args['debug']:
                 if os.path.isdir(arg.model_saved_name):
                     print('log_dir: ', arg.model_saved_name, 'already exist')
-                    answer = input('delete it? y/n:')
-                    if answer == 'y':
+                    answer = input('delete it? [y]/n:')
+                    if answer.lower() in ('y', ''):
                         shutil.rmtree(arg.model_saved_name)
                         print('Dir removed: ', arg.model_saved_name)
                         input('Refresh the website of tensorboard by pressing any keys')
                     else:
                         print('Dir not removed: ', arg.model_saved_name)
-                self.train_writer = SummaryWriter(os.path.join(arg.model_saved_name, 'train'), 'train')
-                self.val_writer = SummaryWriter(os.path.join(arg.model_saved_name, 'val'), 'val')
-            else:
-                self.train_writer = self.val_writer = SummaryWriter(os.path.join(arg.model_saved_name, 'test'), 'test')
+
+            self.writer = SummaryWriter(os.path.join(arg.model_saved_name, 'training'), 'both')
+
         self.global_step = 0
         self.load_model()
         self.load_optimizer()
         self.load_data()
         self.lr = self.arg.base_lr
         self.best_acc = 0
+
 
     def load_data(self):
         Feeder = import_class(self.arg.feeder)
@@ -206,6 +210,8 @@ class Processor():
                 num_workers=self.arg.num_worker,
                 drop_last=True,
                 worker_init_fn=init_seed)
+
+        # Load test data regardless
         self.data_loader['test'] = torch.utils.data.DataLoader(
             dataset=Feeder(**self.arg.test_feeder_args),
             batch_size=self.arg.test_batch_size,
@@ -214,16 +220,18 @@ class Processor():
             drop_last=False,
             worker_init_fn=init_seed)
 
+
     def load_model(self):
         output_device = self.arg.device[0] if type(self.arg.device) is list else self.arg.device
         self.output_device = output_device
         Model = import_class(self.arg.model)
+        # Copy model file to output dir
         shutil.copy2(inspect.getfile(Model), self.arg.work_dir)
         print(Model)
         self.model = Model(**self.arg.model_args).cuda(output_device)
-        print(self.model)
         self.loss = nn.CrossEntropyLoss().cuda(output_device)
 
+        # Load weights
         if self.arg.weights:
             self.global_step = int(arg.weights[:-3].split('-')[-1])
             self.print_log('Load weights from {}.'.format(self.arg.weights))
@@ -254,12 +262,14 @@ class Processor():
                 state.update(weights)
                 self.model.load_state_dict(state)
 
+        # Parallelise data if mulitple GPUs
         if type(self.arg.device) is list:
             if len(self.arg.device) > 1:
                 self.model = nn.DataParallel(
                     self.model,
                     device_ids=self.arg.device,
                     output_device=output_device)
+
 
     def load_optimizer(self):
         if self.arg.optimizer == 'SGD':
@@ -275,12 +285,9 @@ class Processor():
                 lr=self.arg.base_lr,
                 weight_decay=self.arg.weight_decay)
         else:
-            raise ValueError()
+            raise ValueError('Unsupported optimizer: {}'.format(self.arg.optimizer))
 
-        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1,
-                                              patience=10, verbose=True,
-                                              threshold=1e-4, threshold_mode='rel',
-                                              cooldown=0)
+        self.lr_scheduler = MultiStepLR(self.optimizer, milestones=self.arg.step, gamma=0.1)
 
     def save_arg(self):
         # save arg
@@ -289,19 +296,6 @@ class Processor():
             os.makedirs(self.arg.work_dir)
         with open('{}/config.yaml'.format(self.arg.work_dir), 'w') as f:
             yaml.dump(arg_dict, f)
-
-    def adjust_learning_rate(self, epoch):
-        if self.arg.optimizer == 'SGD' or self.arg.optimizer == 'Adam':
-            if epoch < self.arg.warm_up_epoch:
-                lr = self.arg.base_lr * (epoch + 1) / self.arg.warm_up_epoch
-            else:
-                lr = self.arg.base_lr * (
-                        0.1 ** np.sum(epoch >= np.array(self.arg.step)))
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = lr
-            return lr
-        else:
-            raise ValueError()
 
     def print_time(self):
         localtime = time.asctime(time.localtime(time.time()))
@@ -325,42 +319,49 @@ class Processor():
         self.record_time()
         return split_time
 
+    def update_graph_freeze(self, epoch):
+        freeze_graphs = (epoch < self.arg.freeze_graph_until)
+        self.print_log('Graphs are {} at epoch {}'.format('frozen' if freeze_graphs else 'learnable', epoch + 1))
+        for name, params in self.model.named_parameters():
+            if ('source_M' in name) or ('target_M' in name):
+                params.requires_grad = freeze_graphs
+
     def train(self, epoch, save_model=False):
-        self.model.train()
         self.print_log('Training epoch: {}'.format(epoch + 1))
+        self.model.train()
         loader = self.data_loader['train']
-        self.adjust_learning_rate(epoch)
-        # for name, param in self.model.named_parameters():
-        #     self.train_writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
-        loss_value = []
-        self.train_writer.add_scalar('epoch', epoch, self.global_step)
+        loss_values = []
+        self.writer.add_scalar('train/epoch', epoch, self.global_step)
         self.record_time()
         timer = dict(dataloader=0.001, model=0.001, statistics=0.001)
+
+        # if self.arg.only_train_part:
+        #     if epoch > self.arg.only_train_epoch:
+        #         print('only train part, require grad')
+        #         for key, value in self.model.named_parameters():
+        #             if 'PA' in key:
+        #                 value.requires_grad = True
+        #     else:
+        #         print('only train part, do not require grad')
+        #         for key, value in self.model.named_parameters():
+        #             if 'PA' in key:
+        #                 value.requires_grad = False
+
+        self.update_graph_freeze(epoch)
+
         process = tqdm(loader)
-        if self.arg.only_train_part:
-            if epoch > self.arg.only_train_epoch:
-                print('only train part, require grad')
-                for key, value in self.model.named_parameters():
-                    if 'PA' in key:
-                        value.requires_grad = True
-                        # print(key + '-require grad')
-            else:
-                print('only train part, do not require grad')
-                for key, value in self.model.named_parameters():
-                    if 'PA' in key:
-                        value.requires_grad = False
-                        # print(key + '-not require grad')
-        for batch_idx, (data, label, index) in enumerate(process):
+        # for batch_idx, (data, label, index) in enumerate(process):
+        for batch_idx, (joint_data, bone_data, label, index) in enumerate(process):
             self.global_step += 1
             # get data
-            data = Variable(data.float().cuda(self.output_device), requires_grad=False)
-            label = Variable(label.long().cuda(self.output_device), requires_grad=False)
+            with torch.no_grad():
+                joint_data = joint_data.float().cuda(self.output_device)
+                bone_data = bone_data.float().cuda(self.output_device)
+                label = label.long().cuda(self.output_device)
             timer['dataloader'] += self.split_time()
 
             # forward
-            output = self.model(data)
-            # if batch_idx == 0 and epoch == 0:
-            #     self.train_writer.add_graph(self.model, output)
+            output = self.model(joint_data, bone_data)
             if isinstance(output, tuple):
                 output, l1 = output
                 l1 = l1.mean()
@@ -372,41 +373,36 @@ class Processor():
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            loss_value.append(loss.item())
+            loss_values.append(loss.item())
             timer['model'] += self.split_time()
 
-            value, predict_label = torch.max(output.data, 1)
-            acc = torch.mean((predict_label == label.data).float())
-            self.train_writer.add_scalar('acc', acc, self.global_step)
-            self.train_writer.add_scalar('loss', loss.item(), self.global_step)
-            self.train_writer.add_scalar('loss_l1', l1, self.global_step)
-            # self.train_writer.add_scalar('batch_time', process.iterable.last_duration, self.global_step)
+            # Display loss
+            process.set_description('loss: {:.4f}'.format(loss.item()))
+
+            value, predict_label = torch.max(output, 1)
+            acc = torch.mean((predict_label == label).float())
+            self.writer.add_scalar('train/acc', acc, self.global_step)
+            self.writer.add_scalar('train/loss', loss.item(), self.global_step)
+            self.writer.add_scalar('train/loss_l1', l1, self.global_step)
 
             # statistics
             self.lr = self.optimizer.param_groups[0]['lr']
-            self.train_writer.add_scalar('lr', self.lr, self.global_step)
-            # if self.global_step % self.arg.log_interval == 0:
-            #     self.print_log(
-            #         '\tBatch({}/{}) done. Loss: {:.4f}  lr:{:.6f}'.format(
-            #             batch_idx, len(loader), loss.data[0], lr))
+            self.writer.add_scalar('train/lr', self.lr, self.global_step)
             timer['statistics'] += self.split_time()
 
         # statistics of time consumption and loss
         proportion = {
-            k: '{:02d}%'.format(int(round(v * 100 / sum(timer.values()))))
+            k: '{: 2d}%'.format(int(round(v * 100 / sum(timer.values()))))
             for k, v in timer.items()
         }
-        self.print_log(
-            '\tMean training loss: {:.4f}.'.format(np.mean(loss_value)))
-        self.print_log(
-            '\tTime consumption: [Data]{dataloader}, [Network]{model}'.format(
-                **proportion))
+        self.print_log('\tMean training loss: {:.4f}.'.format(np.mean(loss_values)))
+        self.print_log('\tTime consumption: [Data]{dataloader}, [Network]{model}'.format(**proportion))
+
+        self.lr_scheduler.step(epoch)
 
         if save_model:
             state_dict = self.model.state_dict()
-            weights = OrderedDict([[k.split('module.')[-1],
-                                    v.cpu()] for k, v in state_dict.items()])
-
+            weights = OrderedDict([[k.split('module.')[-1], v.cpu()] for k, v in state_dict.items()])
             torch.save(weights, self.arg.model_saved_name + '-' + str(epoch) + '-' + str(int(self.global_step)) + '.pt')
 
     def eval(self, epoch, save_score=False, loader_name=['test'], wrong_file=None, result_file=None):
@@ -414,68 +410,65 @@ class Processor():
             f_w = open(wrong_file, 'w')
         if result_file is not None:
             f_r = open(result_file, 'w')
+
         self.model.eval()
         self.print_log('Eval epoch: {}'.format(epoch + 1))
+
         for ln in loader_name:
-            loss_value = []
-            score_frag = []
-            right_num_total = 0
-            total_num = 0
-            loss_total = 0
+            loss_values, score_batches = [], []
             step = 0
             process = tqdm(self.data_loader[ln])
-            for batch_idx, (data, label, index) in enumerate(process):
+            for batch_idx, (joint_data, bone_data, label, index) in enumerate(process):
+                step += 1
                 with torch.no_grad():
-                    data = Variable(
-                        data.float().cuda(self.output_device),
-                        requires_grad=False,
-                        volatile=True)
-                    label = Variable(
-                        label.long().cuda(self.output_device),
-                        requires_grad=False,
-                        volatile=True)
-                    output = self.model(data)
+                    joint_data = joint_data.float().cuda(self.output_device)
+                    bone_data = bone_data.float().cuda(self.output_device)
+                    label = label.long().cuda(self.output_device)
+                    output = self.model(joint_data, bone_data)
                     if isinstance(output, tuple):
                         output, l1 = output
                         l1 = l1.mean()
                     else:
                         l1 = 0
-                    loss = self.loss(output, label)
-                    score_frag.append(output.data.cpu().numpy())
-                    loss_value.append(loss.item())
 
-                    _, predict_label = torch.max(output.data, 1)
-                    step += 1
+                    loss = self.loss(output, label)
+                    score_batches.append(output.cpu().numpy())
+                    loss_values.append(loss.item())
+                    # Argmax over logits = labels
+                    _, predict_label = torch.max(output, dim=1)
 
                     if wrong_file is not None or result_file is not None:
                         predict = list(predict_label.cpu().numpy())
-                        true = list(label.data.cpu().numpy())
-                        for i, x in enumerate(predict):
+                        true = list(label.cpu().numpy())
+                        for i, pred in enumerate(predict):
                             if result_file is not None:
-                                f_r.write(str(x) + ',' + str(true[i]) + '\n')
-                            if x != true[i] and wrong_file is not None:
-                                f_w.write(str(index[i]) + ',' + str(x) + ',' + str(true[i]) + '\n')
-            score = np.concatenate(score_frag)
-            loss = np.mean(loss_value)
+                                f_r.write('{},{}\n'.format(pred, true[i]))
+                            if pred != true[i] and wrong_file is not None:
+                                f_w.write('{},{},{}\n'.format(index[i], pred, true[i]))
+
+            # Concatenate along the batch dimension, and 1st dim ~= `len(dataset)`
+            score = np.concatenate(score_batches)
+            loss = np.mean(loss_values)
             accuracy = self.data_loader[ln].dataset.top_k(score, 1)
             if accuracy > self.best_acc:
                 self.best_acc = accuracy
-            # self.lr_scheduler.step(loss)
-            print('Accuracy: ', accuracy, ' model: ', self.arg.model_saved_name)
-            if self.arg.phase == 'train':
-                self.val_writer.add_scalar('loss', loss, self.global_step)
-                self.val_writer.add_scalar('loss_l1', l1, self.global_step)
-                self.val_writer.add_scalar('acc', accuracy, self.global_step)
+                self.best_acc_epoch = epoch
 
-            score_dict = dict(
-                zip(self.data_loader[ln].dataset.sample_name, score))
+            print('Accuracy: ', accuracy, ' Model: ', self.arg.model_saved_name)
+            if self.arg.phase == 'train':
+                self.writer.add_scalar('val/loss', loss, self.global_step)
+                self.writer.add_scalar('val/loss_l1', l1, self.global_step)
+                self.writer.add_scalar('val/acc', accuracy, self.global_step)
+
             self.print_log('\tMean {} loss of {} batches: {}.'.format(
-                ln, len(self.data_loader[ln]), np.mean(loss_value)))
+                ln, len(self.data_loader[ln]), np.mean(loss_values)))
+
             for k in self.arg.show_topk:
                 self.print_log('\tTop{}: {:.2f}%'.format(
                     k, 100 * self.data_loader[ln].dataset.top_k(score, k)))
 
             if save_score:
+                score_dict = dict(zip(self.data_loader[ln].dataset.sample_name, score))
                 with open('{}/epoch{}_{}_score.pkl'.format(
                         self.arg.work_dir, epoch + 1, ln), 'wb') as f:
                     pickle.dump(score_dict, f)
@@ -491,13 +484,10 @@ class Processor():
                         epoch + 1 == self.arg.num_epoch)
 
                 self.train(epoch, save_model=save_model)
+                self.eval(epoch, save_score=self.arg.save_score, loader_name=['test'])
 
-                self.eval(
-                    epoch,
-                    save_score=self.arg.save_score,
-                    loader_name=['test'])
-
-            print('best accuracy: ', self.best_acc, ' model_name: ', self.arg.model_saved_name)
+            print('Best accuracy: {}, epoch: {}, model_name: {}'
+                  .format(self.best_acc, self.best_acc_epoch, self.arg.model_saved_name))
 
         elif self.arg.phase == 'test':
             if not self.arg.test_feeder_args['debug']:

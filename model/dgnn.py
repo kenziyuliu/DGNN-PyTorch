@@ -46,7 +46,7 @@ class TemporalConv(nn.Module):
         )
 
         self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         conv_init(self.conv)
         bn_init(self.bn, 1)
 
@@ -83,7 +83,7 @@ class DGNBlock(nn.Module):
         bn_init(self.bn_v, 1)
         bn_init(self.bn_e, 1)
 
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, fv, fe):
         # `fv` (node features) has shape (N, C, T, V_node)
@@ -119,17 +119,21 @@ class GraphTemporalConv(nn.Module):
         super(GraphTemporalConv, self).__init__()
         self.dgn = DGNBlock(in_channels, out_channels, source_M, target_M)
         self.tcn = BiTemporalConv(out_channels, out_channels, kernel_size=temp_kernel_size, stride=stride)
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
 
         if not residual:
             self.residual = lambda fv, fe: (0, 0)
         elif (in_channels == out_channels) and (stride == 1):
             self.residual = lambda fv, fe: (fv, fe)
         else:
-            self.residual = BiTemporalConv(in_channels, out_channels, kernel_size=1, stride=1)
+            self.residual = BiTemporalConv(in_channels, out_channels, kernel_size=temp_kernel_size, stride=stride)
 
     def forward(self, fv, fe):
-        fv, fe = self.tcn(self.dgn(fv, fe)) + self.residual(fv, fe)
+        fv_res, fe_res = self.residual(fv, fe)
+        fv, fe = self.dgn(fv, fe)
+        fv, fe = self.tcn(fv, fe)
+        fv += fv_res
+        fe += fe_res
         return self.relu(fv), self.relu(fe)
 
 
@@ -197,7 +201,7 @@ class Model(nn.Module):
         fv, fe = self.l9(fv, fe)
         fv, fe = self.l10(fv, fe)
 
-        # N*M,C,T,V
+        # Shape: (N*M,C,T,V), C is same for fv/fe
         out_channels = fv.size(1)
 
         # Performs pooling over both nodes and frames, and over number of persons
@@ -214,3 +218,9 @@ if __name__ == "__main__":
     import sys
     sys.path.append('..')
     model = Model(graph='graph.directed_ntu_rgb_d.Graph')
+
+    for name, param in model.named_parameters():
+        print('name is:', name)
+        print('type(name):', type(name))
+        print('param:', type(param))
+        print()
