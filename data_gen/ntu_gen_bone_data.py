@@ -30,7 +30,8 @@ paris = {
 sets = {'train', 'val'}
 datasets = {'ntu/xview', 'ntu/xsub'}
 
-if __name__ == '__main__':
+def gen_bone_data():
+    """Generate bone data from joint data for NTU skeleton dataset"""
     for dataset in datasets:
         for set in sets:
             print(dataset, set)
@@ -52,3 +53,7 @@ if __name__ == '__main__':
                 # Assign bones to be joint1 - joint2, the pairs are pre-determined and hardcoded
                 # There also happens to be 25 bones
                 fp_sp[:, :, :, v1, :] = data[:, :, :, v1, :] - data[:, :, :, v2, :]
+
+
+if __name__ == '__main__':
+    gen_bone_data()

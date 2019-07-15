@@ -1,9 +1,11 @@
+import os
 import re
-import argparse
 import pickle
+import argparse
+import numpy as np
+
 from tqdm import tqdm
 import sys
-
 sys.path.extend(['../'])
 from data_gen.preprocess import pre_normalization
 
@@ -16,9 +18,6 @@ max_body_true = 2
 max_body_kinect = 4
 num_joint = 25
 max_frame = 300
-
-import numpy as np
-import os
 
 
 def read_skeleton_filter(file):
