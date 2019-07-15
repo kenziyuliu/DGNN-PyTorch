@@ -6,7 +6,7 @@ import time
 import numpy as np
 import yaml
 import pickle
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 # torch
 import torch
 import torch.nn as nn
@@ -193,11 +193,12 @@ class Processor():
 
         self.global_step = 0
         self.load_model()
+        self.load_param_groups()    # Group parameters to apply different learning rules
         self.load_optimizer()
         self.load_data()
         self.lr = self.arg.base_lr
         self.best_acc = 0
-
+        self.best_acc_epoch = 0
 
     def load_data(self):
         Feeder = import_class(self.arg.feeder)
@@ -219,7 +220,6 @@ class Processor():
             num_workers=self.arg.num_worker,
             drop_last=False,
             worker_init_fn=init_seed)
-
 
     def load_model(self):
         output_device = self.arg.device[0] if type(self.arg.device) is list else self.arg.device
@@ -272,16 +272,31 @@ class Processor():
 
 
     def load_optimizer(self):
+        # if self.arg.optimizer == 'SGD':
+        #     self.optimizer = optim.SGD(
+        #         self.model.parameters(),
+        #         lr=self.arg.base_lr,
+        #         momentum=0.9,
+        #         nesterov=self.arg.nesterov,
+        #         weight_decay=self.arg.weight_decay)
+        # elif self.arg.optimizer == 'Adam':
+        #             self.optimizer = optim.Adam(
+        #                 self.model.parameters(),
+        #                 lr=self.arg.base_lr,
+        #                 weight_decay=self.arg.weight_decay)
+        #         else:
+        #             raise ValueError('Unsupported optimizer: {}'.format(self.arg.optimizer))
+
         if self.arg.optimizer == 'SGD':
             self.optimizer = optim.SGD(
-                self.model.parameters(),
+                list(self.optim_param_groups.values()),
                 lr=self.arg.base_lr,
                 momentum=0.9,
                 nesterov=self.arg.nesterov,
                 weight_decay=self.arg.weight_decay)
         elif self.arg.optimizer == 'Adam':
             self.optimizer = optim.Adam(
-                self.model.parameters(),
+                list(self.optim_param_groups.values()),
                 lr=self.arg.base_lr,
                 weight_decay=self.arg.weight_decay)
         else:
@@ -319,12 +334,31 @@ class Processor():
         self.record_time()
         return split_time
 
+    def load_param_groups(self):
+        self.param_groups = defaultdict(list)
+        for name, params in self.model.named_parameters():
+            if ('source_M' in name) or ('target_M' in name):
+                self.param_groups['graph'].append(params)
+            elif 'bn' in name:
+                self.param_groups['batchnorm'].append(params)
+            else:
+                self.param_groups['other'].append(params)
+
+        # NOTE: Different parameter groups should have different learning behaviour
+        self.optim_param_groups = {
+            'graph': {'params': self.param_groups['graph'], 'weight_decay': 0},
+            'batchnorm': {'params': self.param_groups['batchnorm'], 'weight_decay': 0},
+            'other': {'params': self.param_groups['other']}
+        }
+
     def update_graph_freeze(self, epoch):
         freeze_graphs = (epoch < self.arg.freeze_graph_until)
         self.print_log('Graphs are {} at epoch {}'.format('frozen' if freeze_graphs else 'learnable', epoch + 1))
-        for name, params in self.model.named_parameters():
-            if ('source_M' in name) or ('target_M' in name):
-                params.requires_grad = freeze_graphs
+        for param in self.param_groups['graph']:
+            param.requires_grad = freeze_graphs
+        # graph_weight_decay = 0 if freeze_graphs else self.arg.weight_decay
+        # NOTE: will decide later whether we need to change weight decay as well
+        # self.optim_param_groups['graph']['weight_decay'] = graph_weight_decay
 
     def train(self, epoch, save_model=False):
         self.print_log('Training epoch: {}'.format(epoch + 1))
