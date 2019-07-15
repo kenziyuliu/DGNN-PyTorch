@@ -1,0 +1,27 @@
+work_dir: ./work_dir/ntu/xsub/dgnn_test_spatial
+model_saved_name: ./runs/ntu_cs_dgnn_test_spatial
+
+# feeder
+feeder: feeders.feeder.Feeder
+test_feeder_args:
+  joint_data_path: ./data/ntu/xsub/val_data_joint.npy
+  bone_data_path: ./data/ntu/xsub/val_data_bone.npy
+  label_path: ./data/ntu/xsub/val_label.pkl
+  debug: False
+
+# model
+model: model.dgnn.Model
+model_args:
+  num_class: 60
+  num_point: 25
+  num_person: 2
+  graph: graph.directed_ntu_rgb_d.Graph
+
+# test
+phase: test
+device: [0, 1]
+test_batch_size: 32
+# NOTE: default tests the newest weight
+# Change filename if using different batch sizes
+weights: ./runs/ntu_cs_dgnn_spatial-49-62600.pt
+save_score: True
