@@ -272,31 +272,17 @@ class Processor():
 
 
     def load_optimizer(self):
-        # if self.arg.optimizer == 'SGD':
-        #     self.optimizer = optim.SGD(
-        #         self.model.parameters(),
-        #         lr=self.arg.base_lr,
-        #         momentum=0.9,
-        #         nesterov=self.arg.nesterov,
-        #         weight_decay=self.arg.weight_decay)
-        # elif self.arg.optimizer == 'Adam':
-        #             self.optimizer = optim.Adam(
-        #                 self.model.parameters(),
-        #                 lr=self.arg.base_lr,
-        #                 weight_decay=self.arg.weight_decay)
-        #         else:
-        #             raise ValueError('Unsupported optimizer: {}'.format(self.arg.optimizer))
-
+        p_groups = list(self.optim_param_groups.values())
         if self.arg.optimizer == 'SGD':
             self.optimizer = optim.SGD(
-                list(self.optim_param_groups.values()),
+                p_groups,
                 lr=self.arg.base_lr,
                 momentum=0.9,
                 nesterov=self.arg.nesterov,
                 weight_decay=self.arg.weight_decay)
         elif self.arg.optimizer == 'Adam':
             self.optimizer = optim.Adam(
-                list(self.optim_param_groups.values()),
+                p_groups,
                 lr=self.arg.base_lr,
                 weight_decay=self.arg.weight_decay)
         else:
@@ -352,10 +338,10 @@ class Processor():
         }
 
     def update_graph_freeze(self, epoch):
-        freeze_graphs = (epoch < self.arg.freeze_graph_until)
-        self.print_log('Graphs are {} at epoch {}'.format('frozen' if freeze_graphs else 'learnable', epoch + 1))
+        graph_requires_grad = (epoch > self.arg.freeze_graph_until)
+        self.print_log('Graphs are {} at epoch {}'.format('learnable' if graph_requires_grad else 'frozen', epoch + 1))
         for param in self.param_groups['graph']:
-            param.requires_grad = freeze_graphs
+            param.requires_grad = graph_requires_grad
         # graph_weight_decay = 0 if freeze_graphs else self.arg.weight_decay
         # NOTE: will decide later whether we need to change weight decay as well
         # self.optim_param_groups['graph']['weight_decay'] = graph_weight_decay

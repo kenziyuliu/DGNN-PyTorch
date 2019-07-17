@@ -59,8 +59,8 @@ def build_digraph_incidence_matrix(num_nodes: int, edges: List[Tuple]) -> np.nda
     source_graph = np.zeros((num_nodes, max_edges), dtype='float32')
     target_graph = np.zeros((num_nodes, max_edges), dtype='float32')
     for edge_id, (source_node, target_node) in enumerate(edges):
-        source_graph[source_node, edge_id] = 1
-        target_graph[target_node, edge_id] = 1
+        source_graph[source_node, edge_id] = 1.
+        target_graph[target_node, edge_id] = 1.
     full_graph = source_graph + target_graph
     source_graph = normalize_incidence_matrix(source_graph, full_graph)
     target_graph = normalize_incidence_matrix(target_graph, full_graph)
