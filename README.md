@@ -96,13 +96,54 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 
 ## Results
 
-Results are being reproduced...
+### NTU RGB+D Cross Subject
+
+#### Hyperparameters
+
+| Hyperparameter | Value | Notes |
+| --- | --- | --- |
+| Epochs | 120 | |
+| Batch Size | 32 | Due to memory limit, each forward pass uses BS 16 and every gradient step takes 2 forward/backward passes |
+| Optimizer | SGD + Nesterov Momentum | |
+| Base LR | 0.1 | |
+| LR Schedule | 0.1x at Epoch 60, 90 | |
+| Weight Decay | 0.0005 | Value not found in the paper |
+| # Epochs to freeze graphs | 10 | Graphs become learnable after 10 epochs by allowing gradients |
+
+#### Summary
+
+| | Test Accuracy (Reproduced) | Test Accuracy (In Paper)
+| --- | --- | --- |
+| Spatial Stream | 84.9% | 89.2% |
+| Motion Stream | - | 86.8% |
+| Ensemble (two-stream) | - | 89.9% |
+
+#### Spatial Stream
+
+*Training Loss and Accuracy*
+
+<img src="./plots/4-dgnn-spatial-repro/train_loss.svg" alt="Training Loss" style="width:300px;"/>
+<img src="./plots/4-dgnn-spatial-repro/train_acc.svg" alt="Training Acc" style="width:300px;"/>
+
+*Testing Loss and Accuracy*
+
+<img src="./plots/4-dgnn-spatial-repro/val_loss.svg" alt="Testing Loss" style="width:300px;"/>
+<img src="./plots/4-dgnn-spatial-repro/val_acc.svg" alt="Testing Acc" style="width:300px;"/>
+
+
+#### Moiton Stream
+
+Being reproduced
+
+### Kinetics
+
+TODO
 
 ## TODO
 
-- Try to reproduce results
 - Kinetics
     - Handling datasets
     - Config files
+    - Reproduce results
 - NTU Cross View
     - Config files

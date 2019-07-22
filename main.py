@@ -380,30 +380,73 @@ class Processor():
                 label = label.long().cuda(self.output_device)
             timer['dataloader'] += self.split_time()
 
-            # forward
-            output = self.model(joint_data, bone_data)
-            if isinstance(output, tuple):
-                output, l1 = output
-                l1 = l1.mean()
-            else:
-                l1 = 0
-            loss = self.loss(output, label) + l1
-
-            # backward
+            # Clear gradients
             self.optimizer.zero_grad()
-            loss.backward()
+
+            ################################
+            real_batch_size = 16
+            splits = len(joint_data) // real_batch_size
+            assert len(joint_data) % real_batch_size == 0, 'Real batch size should be a factor of arg.batch_size!'
+
+            for i in range(splits):
+                left = i * real_batch_size
+                right = left + real_batch_size
+                batch_joint_data, batch_bone_data = joint_data[left:right], bone_data[left:right]
+                batch_label = label[left:right]
+
+                # forward
+                output = self.model(batch_joint_data, batch_bone_data)
+                if isinstance(output, tuple):
+                    output, l1 = output
+                    l1 = l1.mean()
+                else:
+                    l1 = 0
+                loss = self.loss(output, batch_label) / float(splits)
+                loss.backward()
+
+                loss_values.append(loss.item())
+                timer['model'] += self.split_time()
+
+                # Display loss
+                process.set_description('loss: {:.4f}'.format(loss.item()))
+
+                value, predict_label = torch.max(output, 1)
+                acc = torch.mean((predict_label == batch_label).float())
+                self.writer.add_scalar('train/acc', acc, self.global_step)
+                self.writer.add_scalar('train/loss', loss.item(), self.global_step)
+                self.writer.add_scalar('train/loss_l1', l1, self.global_step)
+
+            # Step after looping over batch splits
             self.optimizer.step()
-            loss_values.append(loss.item())
-            timer['model'] += self.split_time()
 
-            # Display loss
-            process.set_description('loss: {:.4f}'.format(loss.item()))
+            ###############################
 
-            value, predict_label = torch.max(output, 1)
-            acc = torch.mean((predict_label == label).float())
-            self.writer.add_scalar('train/acc', acc, self.global_step)
-            self.writer.add_scalar('train/loss', loss.item(), self.global_step)
-            self.writer.add_scalar('train/loss_l1', l1, self.global_step)
+            # # forward
+            # output = self.model(joint_data, bone_data)
+            # if isinstance(output, tuple):
+            #     output, l1 = output
+            #     l1 = l1.mean()
+            # else:
+            #     l1 = 0
+            # loss = self.loss(output, label) + l1
+
+            # # backward
+            # loss.backward()
+            # self.optimizer.step()
+
+            ################################
+
+            # loss_values.append(loss.item())
+            # timer['model'] += self.split_time()
+
+            # # Display loss
+            # process.set_description('loss: {:.4f}'.format(loss.item()))
+
+            # value, predict_label = torch.max(output, 1)
+            # acc = torch.mean((predict_label == label).float())
+            # self.writer.add_scalar('train/acc', acc, self.global_step)
+            # self.writer.add_scalar('train/loss', loss.item(), self.global_step)
+            # self.writer.add_scalar('train/loss_l1', l1, self.global_step)
 
             # statistics
             self.lr = self.optimizer.param_groups[0]['lr']
