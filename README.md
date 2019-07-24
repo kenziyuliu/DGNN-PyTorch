@@ -122,14 +122,17 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 
 *Training Loss and Accuracy*
 
-<img src="./plots/4-dgnn-spatial-repro/train_loss.svg" alt="Training Loss" style="width:300px;"/>
-<img src="./plots/4-dgnn-spatial-repro/train_acc.svg" alt="Training Acc" style="width:300px;"/>
+<p align="center">
+  <img src="./plots/4-dgnn-spatial-repro/train_loss.svg" width="400" title="Training Loss">
+  <img src="./plots/4-dgnn-spatial-repro/train_acc.svg" width="400" title="Training Accuracy">
+</p>
 
 *Testing Loss and Accuracy*
 
-<img src="./plots/4-dgnn-spatial-repro/val_loss.svg" alt="Testing Loss" style="width:300px;"/>
-<img src="./plots/4-dgnn-spatial-repro/val_acc.svg" alt="Testing Acc" style="width:300px;"/>
-
+<p align="center">
+  <img src="./plots/4-dgnn-spatial-repro/val_loss.svg" width="400" title="Testing Loss">
+  <img src="./plots/4-dgnn-spatial-repro/val_acc.svg" width="400" title="Testing Accuracy">
+</p>
 
 #### Moiton Stream
 
