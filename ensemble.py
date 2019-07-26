@@ -13,9 +13,9 @@ arg = parser.parse_args()
 dataset = arg.datasets
 label = open('./data/' + dataset + '/val_label.pkl', 'rb')
 label = np.array(pickle.load(label))
-r1 = open('./work_dir/' + dataset + '/agcn_test_joint/epoch1_test_score.pkl', 'rb')
+r1 = open('./work_dir/' + dataset + '/dgnn_test_spatial/epoch1_test_score.pkl', 'rb')
 r1 = list(pickle.load(r1).items())
-r2 = open('./work_dir/' + dataset + '/agcn_test_bone/epoch1_test_score.pkl', 'rb')
+r2 = open('./work_dir/' + dataset + '/dgnn_test_motion/epoch1_test_score.pkl', 'rb')
 r2 = list(pickle.load(r2).items())
 right_num = total_num = right_num_5 = 0
 for i in tqdm(range(len(label[0]))):
