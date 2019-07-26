@@ -46,7 +46,17 @@ The generation scripts look for generated data in previous step. By default they
 
 ### Kinetics
 
-TODO TODO TODO TODO TODO TODO TODO TODO
+1. Download the Kinetics dataset from ST-GCN repo (https://github.com/yysijie/st-gcn)
+2. Generate joint data:
+
+```bash
+cd data_gen
+python3 kinetics_gendata.py
+```
+
+3. Generate bone data: TODO
+4. Generate motion data: TODO
+
 
 ## Training
 
@@ -60,7 +70,7 @@ python3 main.py --config ./config/<dataset>/train_spatial.yaml
 
 Here, `<dataset>` should be one of `nturgbd-cross-subject`, `nturgbd-cross-view`, or `kinetics-skeleton` depending on the dataset/task on which to train the model.
 
-**Note:** At the moment, only `nturgbd-cross-subject` is supported. More config files will be added later, or you could write your own config file.
+**Note:** At the moment, only `nturgbd-cross-subject` is supported. More config files will (hopefully) be added, or you could write your own config file using the existing ones for `nturgbd-cross-subject`.
 
 ### 2nd Stream: Motion
 
@@ -96,6 +106,8 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 
 ## Results
 
+*Unfortunately, due to hardware limits, I won't be able to reproduce more results on more datasets apart from the NTU RGB+D Cross Subject task*
+
 ### NTU RGB+D Cross Subject
 
 #### Hyperparameters
@@ -122,28 +134,27 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 
 *Training Loss and Accuracy*
 
-<img src="./plots/4-dgnn-spatial-repro/train_loss.svg" alt="Training Loss" style="width:300px;"/>
-<img src="./plots/4-dgnn-spatial-repro/train_acc.svg" alt="Training Acc" style="width:300px;"/>
+<p align="center">
+  <img src="./plots/4-dgnn-spatial-repro/train_loss.svg" width="400" title="Training Loss">
+  <img src="./plots/4-dgnn-spatial-repro/train_acc.svg" width="400" title="Training Accuracy">
+</p>
 
 *Testing Loss and Accuracy*
 
-<img src="./plots/4-dgnn-spatial-repro/val_loss.svg" alt="Testing Loss" style="width:300px;"/>
-<img src="./plots/4-dgnn-spatial-repro/val_acc.svg" alt="Testing Acc" style="width:300px;"/>
-
+<p align="center">
+  <img src="./plots/4-dgnn-spatial-repro/val_loss.svg" width="400" title="Testing Loss">
+  <img src="./plots/4-dgnn-spatial-repro/val_acc.svg" width="400" title="Testing Accuracy">
+</p>
 
 #### Moiton Stream
 
 Being reproduced
 
-### Kinetics
-
-TODO
 
 ## TODO
 
 - Kinetics
     - Handling datasets
     - Config files
-    - Reproduce results
 - NTU Cross View
     - Config files
