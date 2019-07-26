@@ -46,6 +46,8 @@ The generation scripts look for generated data in previous step. By default they
 
 ### Kinetics
 
+*Currently, generating bone/motion data from Kinetics skeletons is not yet supported. Please feel free to add scripts based on `kinetics_gendata.py`*
+
 1. Download the Kinetics dataset from ST-GCN repo (https://github.com/yysijie/st-gcn)
 2. Generate joint data:
 
@@ -146,15 +148,8 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
   <img src="./plots/4-dgnn-spatial-repro/val_acc.svg" width="400" title="Testing Accuracy">
 </p>
 
-#### Moiton Stream
-
-Being reproduced
-
-
 ## TODO
 
 - Kinetics
     - Handling datasets
-    - Config files
-- NTU Cross View
     - Config files

@@ -1,0 +1,41 @@
+work_dir: ./work_dir/ntu/xview/dgnn_motion
+model_saved_name: ./runs/ntu_cs_dgnn_motion
+# feeder
+feeder: feeders.feeder.Feeder
+train_feeder_args:
+  joint_data_path: ./data/ntu/xview/train_data_joint_motion.npy
+  bone_data_path: ./data/ntu/xview/train_data_bone_motion.npy
+  label_path: ./data/ntu/xview/train_label.pkl
+  debug: False
+  random_choose: False
+  random_shift: False
+  random_move: False
+  window_size: -1
+  normalization: False
+
+test_feeder_args:
+  joint_data_path: ./data/ntu/xview/val_data_joint_motion.npy
+  bone_data_path: ./data/ntu/xview/val_data_bone_motion.npy
+  label_path: ./data/ntu/xview/val_label.pkl
+
+# model
+model: model.dgnn.Model
+model_args:
+  num_class: 60
+  num_point: 25
+  num_person: 2
+  graph: graph.directed_ntu_rgb_d.Graph
+
+# optim
+weight_decay: 0.0005
+base_lr: 0.1
+step: [60, 90]
+
+# training
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_epoch: 120
+nesterov: True
+freeze_graph_until: 10  # Number of epochs until graphs can be updated
+
