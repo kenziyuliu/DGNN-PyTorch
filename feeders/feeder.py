@@ -100,6 +100,7 @@ class Feeder(Dataset):
 
         self.joint_dataset = BaseDataset(joint_data_path, label_path, random_choose, random_shift, random_move, window_size, normalization, debug, use_mmap)
         self.bone_dataset = BaseDataset(bone_data_path, label_path, random_choose, random_shift, random_move, window_size, normalization, debug, use_mmap)
+        self.sample_name = self.joint_dataset.sample_name
 
     def __len__(self):
         return min(len(self.joint_dataset), len(self.bone_dataset))

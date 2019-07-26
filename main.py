@@ -302,14 +302,14 @@ class Processor():
         localtime = time.asctime(time.localtime(time.time()))
         self.print_log("Local current time :  " + localtime)
 
-    def print_log(self, str, print_time=True):
+    def print_log(self, s, print_time=True):
         if print_time:
             localtime = time.asctime(time.localtime(time.time()))
-            str = "[ " + localtime + ' ] ' + str
-        print(str)
+            s = '[ {} ] {}'.format(localtime, s)
+        print(s)
         if self.arg.print_log:
             with open('{}/log.txt'.format(self.arg.work_dir), 'a') as f:
-                print(str, file=f)
+                print(s, file=f)
 
     def record_time(self):
         self.cur_time = time.time()
@@ -401,6 +401,7 @@ class Processor():
                     l1 = l1.mean()
                 else:
                     l1 = 0
+
                 loss = self.loss(output, batch_label) / float(splits)
                 loss.backward()
 
