@@ -13,6 +13,15 @@ An unofficial PyTorch implementation of the paper "Skeleton-Based Action Recogni
 - PyTorch >= 1.1.0
 - tensorboardX >= 1.8   (For logging)
 
+## Directory Structure
+
+Most of the interesting stuff can be found in:
+- `model/dgnn.py`: model definition of DGNN
+- `data_gen/`: how raw datasets are processed into numpy tensors
+- `graphs/directed_ntu_rgb_d.py`: graph definition for DGNN
+- `feeders/feeder.py`: how datasets are read in
+- `main.py`: general training/eval processes; graph freezing by disabling gradients; etc.
+
 ## Downloading & Generating Data
 
 ### NTU RGB+D
@@ -46,7 +55,7 @@ The generation scripts look for generated data in previous step. By default they
 
 ### Kinetics
 
-*Currently, generating bone/motion data from Kinetics skeletons is not yet supported. Please feel free to add scripts based on `kinetics_gendata.py`*
+(**Currently, generating bone/motion data from Kinetics skeletons is not yet supported. Please feel free to add scripts based on `kinetics_gendata.py`**)
 
 1. Download the Kinetics dataset from ST-GCN repo (https://github.com/yysijie/st-gcn)
 2. Generate joint data:
@@ -56,8 +65,8 @@ cd data_gen
 python3 kinetics_gendata.py
 ```
 
-3. Generate bone data: TODO
-4. Generate motion data: TODO
+3. Generate bone data: TODO, feel free to fork/submit PR :D
+4. Generate motion data: TODO, feel free to fork/submit PR :D
 
 
 ## Training
@@ -108,7 +117,7 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 
 ## Results
 
-*Unfortunately, due to hardware limits, I won't be able to reproduce more results on more datasets apart from the NTU RGB+D Cross Subject task*
+(**Unfortunately, due to hardware limits, I won't be able to reproduce more results on more datasets apart from the NTU RGB+D Cross Subject task**)
 
 ### NTU RGB+D Cross Subject
 
