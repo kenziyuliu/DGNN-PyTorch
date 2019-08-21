@@ -209,8 +209,10 @@ if __name__ == "__main__":
     sys.path.append('..')
     model = Model(graph='graph.directed_ntu_rgb_d.Graph')
 
-    for name, param in model.named_parameters():
-        print('name is:', name)
-        print('type(name):', type(name))
-        print('param:', type(param))
-        print()
+    # for name, param in model.named_parameters():
+    #     print('name is:', name)
+    #     print('type(name):', type(name))
+    #     print('param:', type(param))
+    #     print()
+
+    print('Model total # params:', sum(p.numel() for p in model.parameters() if p.requires_grad))
