@@ -128,7 +128,7 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 | Hyperparameter | Value | Notes |
 | --- | --- | --- |
 | Epochs | 120 | |
-| Batch Size | 32 | Due to memory limit, each forward pass uses BS 16 and every gradient step takes 2 forward/backward passes |
+| Batch Size | 32 | Each forward pass uses batch size 16 and to simulate BS 32, every gradient step takes 2 forward passes per backward pass |
 | Optimizer | SGD + Nesterov Momentum | |
 | Base LR | 0.1 | |
 | LR Schedule | 0.1x at Epoch 60, 90 | |
