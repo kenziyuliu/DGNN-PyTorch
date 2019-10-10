@@ -1,6 +1,7 @@
 # DGNN-PyTorch
 
-An unofficial PyTorch implementation of the paper "Skeleton-Based Action Recognition with Directed Graph Neural Networks" in CVPR 2019.
+An **unofficial** PyTorch implementation of the paper "Skeleton-Based Action Recognition with Directed Graph Neural Networks" in CVPR 2019.
+NOTE: Experiment results are not being updated due to hardware limits
 
 - Paper: [PDF](http://openaccess.thecvf.com/content_CVPR_2019/papers/Shi_Skeleton-Based_Action_Recognition_With_Directed_Graph_Neural_Networks_CVPR_2019_paper.pdf)
 - Code is based on 2s-AGCN: [GitHub](https://github.com/lshiwjx/2s-AGCN)
@@ -140,22 +141,6 @@ where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
 | Spatial Stream | 84.9% | 89.2% |
 | Motion Stream | - | 86.8% |
 | Ensemble (two-stream) | - | 89.9% |
-
-#### Spatial Stream
-
-*Training Loss and Accuracy*
-
-<p align="center">
-  <img src="./plots/4-dgnn-spatial-repro/train_loss.svg" width="400" title="Training Loss">
-  <img src="./plots/4-dgnn-spatial-repro/train_acc.svg" width="400" title="Training Accuracy">
-</p>
-
-*Testing Loss and Accuracy*
-
-<p align="center">
-  <img src="./plots/4-dgnn-spatial-repro/val_loss.svg" width="400" title="Testing Loss">
-  <img src="./plots/4-dgnn-spatial-repro/val_acc.svg" width="400" title="Testing Accuracy">
-</p>
 
 ## TODO
 

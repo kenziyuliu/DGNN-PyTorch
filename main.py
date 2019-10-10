@@ -189,7 +189,9 @@ class Processor():
                     else:
                         print('Dir not removed: ', arg.model_saved_name)
 
-            self.writer = SummaryWriter(os.path.join(arg.model_saved_name, 'training'), 'both')
+            self.train_writer = SummaryWriter(os.path.join(arg.model_saved_name, 'train'), 'train')
+            self.val_writer = SummaryWriter(os.path.join(arg.model_saved_name, 'val'), 'val')
+            # self.writer = SummaryWriter(os.path.join(arg.model_saved_name, 'training'), 'both')
 
         self.global_step = 0
         self.load_model()
@@ -325,15 +327,12 @@ class Processor():
         for name, params in self.model.named_parameters():
             if ('source_M' in name) or ('target_M' in name):
                 self.param_groups['graph'].append(params)
-            elif 'bn' in name:
-                self.param_groups['batchnorm'].append(params)
             else:
                 self.param_groups['other'].append(params)
 
         # NOTE: Different parameter groups should have different learning behaviour
         self.optim_param_groups = {
-            'graph': {'params': self.param_groups['graph'], 'weight_decay': 0},
-            'batchnorm': {'params': self.param_groups['batchnorm'], 'weight_decay': 0},
+            'graph': {'params': self.param_groups['graph']},
             'other': {'params': self.param_groups['other']}
         }
 
@@ -351,7 +350,7 @@ class Processor():
         self.model.train()
         loader = self.data_loader['train']
         loss_values = []
-        self.writer.add_scalar('train/epoch', epoch, self.global_step)
+        self.train_writer.add_scalar('epoch', epoch, self.global_step)
         self.record_time()
         timer = dict(dataloader=0.001, model=0.001, statistics=0.001)
 
@@ -384,6 +383,7 @@ class Processor():
             self.optimizer.zero_grad()
 
             ################################
+            # Multiple forward passes + 1 backward pass to simulate larger batch size
             real_batch_size = 16
             splits = len(joint_data) // real_batch_size
             assert len(joint_data) % real_batch_size == 0, 'Real batch size should be a factor of arg.batch_size!'
@@ -413,9 +413,9 @@ class Processor():
 
                 value, predict_label = torch.max(output, 1)
                 acc = torch.mean((predict_label == batch_label).float())
-                self.writer.add_scalar('train/acc', acc, self.global_step)
-                self.writer.add_scalar('train/loss', loss.item(), self.global_step)
-                self.writer.add_scalar('train/loss_l1', l1, self.global_step)
+                self.train_writer.add_scalar('acc', acc, self.global_step)
+                self.train_writer.add_scalar('loss', loss.item(), self.global_step)
+                self.train_writer.add_scalar('loss_l1', l1, self.global_step)
 
             # Step after looping over batch splits
             self.optimizer.step()
@@ -451,7 +451,7 @@ class Processor():
 
             # statistics
             self.lr = self.optimizer.param_groups[0]['lr']
-            self.writer.add_scalar('train/lr', self.lr, self.global_step)
+            self.train_writer.add_scalar('lr', self.lr, self.global_step)
             timer['statistics'] += self.split_time()
 
         # statistics of time consumption and loss
@@ -520,9 +520,9 @@ class Processor():
 
             print('Accuracy: ', accuracy, ' Model: ', self.arg.model_saved_name)
             if self.arg.phase == 'train':
-                self.writer.add_scalar('val/loss', loss, self.global_step)
-                self.writer.add_scalar('val/loss_l1', l1, self.global_step)
-                self.writer.add_scalar('val/acc', accuracy, self.global_step)
+                self.val_writer.add_scalar('loss', loss, self.global_step)
+                self.val_writer.add_scalar('loss_l1', l1, self.global_step)
+                self.val_writer.add_scalar('acc', accuracy, self.global_step)
 
             self.print_log('\tMean {} loss of {} batches: {}.'.format(
                 ln, len(self.data_loader[ln]), np.mean(loss_values)))
