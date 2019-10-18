@@ -1,7 +1,8 @@
 # DGNN-PyTorch
 
 An **unofficial** PyTorch implementation of the paper "Skeleton-Based Action Recognition with Directed Graph Neural Networks" in CVPR 2019.
-NOTE: Experiment results are not being updated due to hardware limits
+
+**NOTE**: Experiment results are not being updated due to hardware limits.
 
 - Paper: [PDF](http://openaccess.thecvf.com/content_CVPR_2019/papers/Shi_Skeleton-Based_Action_Recognition_With_Directed_Graph_Neural_Networks_CVPR_2019_paper.pdf)
 - Code is based on 2s-AGCN: [GitHub](https://github.com/lshiwjx/2s-AGCN)
@@ -115,32 +116,6 @@ python ensemble.py --datasets <dataset>
 ```
 
 where `<dataset>` is one of `kinetics`, `ntu/xsub`, `ntu/xview`
-
-## Results
-
-(**Unfortunately, due to hardware limits, I won't be able to reproduce more results on more datasets apart from the NTU RGB+D Cross Subject task**)
-
-### NTU RGB+D Cross Subject
-
-#### Hyperparameters
-
-| Hyperparameter | Value | Notes |
-| --- | --- | --- |
-| Epochs | 120 | |
-| Batch Size | 32 | Due to memory limit, each forward pass uses BS 16 and every gradient step takes 2 forward/backward passes |
-| Optimizer | SGD + Nesterov Momentum | |
-| Base LR | 0.1 | |
-| LR Schedule | 0.1x at Epoch 60, 90 | |
-| Weight Decay | 0.0005 | Value not found in the paper |
-| # Epochs to freeze graphs | 10 | Graphs become learnable after 10 epochs by allowing gradients |
-
-#### Summary
-
-| | Test Accuracy (Reproduced) | Test Accuracy (In Paper)
-| --- | --- | --- |
-| Spatial Stream | 84.9% | 89.2% |
-| Motion Stream | - | 86.8% |
-| Ensemble (two-stream) | - | 89.9% |
 
 ## TODO
 
