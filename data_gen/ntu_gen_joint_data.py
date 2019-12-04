@@ -3,7 +3,7 @@ import re
 import pickle
 import argparse
 import numpy as np
-
+import multiprocessing
 from tqdm import tqdm
 import sys
 sys.path.extend(['../'])
@@ -73,7 +73,7 @@ def get_nonzero_std(s):
     return s
 
 
-def read_xyz(file, max_body=4, num_joint=25):  # 取了前两个body
+def read_xyz(file, max_body=max_body_kinect, num_joint=num_joint):  # 取了前两个body
     seq_info = read_skeleton_filter(file)
     # Create data tensor of shape: (# persons (M), # frames (T), # nodes (V), # channels (C))
     data = np.zeros((max_body, seq_info['numFrame'], num_joint, 3))
@@ -131,12 +131,12 @@ def gendata(data_path, out_path, ignored_sample_path=None, benchmark='xview', pa
 
     # Create data tensor with shape (# examples (N), C, T, V, M)
     fp = np.zeros((len(sample_label), 3, max_frame, num_joint, max_body_true), dtype=np.float32)
-
-    # Fill in the data tensor `fp` one training example a time
-    for i, s in enumerate(tqdm(sample_name)):
-        data = read_xyz(os.path.join(data_path, s), max_body=max_body_kinect, num_joint=num_joint)
+        
+    # Fill in the data tensor `fp` with training examples in parallel
+    results = list(tqdm(multiprocessing.Pool().imap(read_xyz, [os.path.join(data_path, s) for s in sample_name]), total=len(sample_name)))
+    for i, data in enumerate(results):
         fp[i, :, :data.shape[1], :, :] = data
-
+        
     fp = pre_normalization(fp)
     np.save('{}/{}_data_joint.npy'.format(out_path, part), fp)
 
