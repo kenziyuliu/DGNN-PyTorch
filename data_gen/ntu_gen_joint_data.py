@@ -4,6 +4,7 @@ import pickle
 import argparse
 import numpy as np
 
+import multiprocessing
 from tqdm import tqdm
 import sys
 sys.path.extend(['../'])
@@ -132,10 +133,11 @@ def gendata(data_path, out_path, ignored_sample_path=None, benchmark='xview', pa
     # Create data tensor with shape (# examples (N), C, T, V, M)
     fp = np.zeros((len(sample_label), 3, max_frame, num_joint, max_body_true), dtype=np.float32)
 
-    # Fill in the data tensor `fp` one training example a time
-    for i, s in enumerate(tqdm(sample_name)):
-        data = read_xyz(os.path.join(data_path, s), max_body=max_body_kinect, num_joint=num_joint)
-        fp[i, :, :data.shape[1], :, :] = data
+    # Fill in the data tensor `fp` with training examples in parallel
+    with multiprocessing.Pool() as p:
+        results = list(tqdm(p.imap(read_xyz, [os.path.join(data_path, s) for s in sample_name]), total=len(sample_name)))
+        for i, data in enumerate(results):
+            fp[i, :, :data.shape[1], :, :] = data
 
     fp = pre_normalization(fp)
     np.save('{}/{}_data_joint.npy'.format(out_path, part), fp)
