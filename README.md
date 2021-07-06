@@ -9,10 +9,10 @@ An **unofficial** PyTorch implementation of the paper "Skeleton-Based Action Rec
 
 ## Dependencies
 
-- Python >= 3.5
+- Python >= 3.6
 - scipy >= 1.3.0
 - numpy >= 1.16.4
-- PyTorch >= 1.1.0
+- PyTorch >= 1.4.0
 - tensorboardX >= 1.8   (For logging)
 
 ## Directory Structure
@@ -35,8 +35,7 @@ Most of the interesting stuff can be found in:
 3. Generate the joint dataset first:
 
 ```bash
-cd data_gen
-python3 ntu_gen_joint_data.py
+python3 ./data_gen/ntu_gen_joint_data.py
 ```
 
 Specify the data location if the raw skeletons data are placed somewhere else. The default looks at `./data/nturgbd_raw/`.
@@ -44,13 +43,13 @@ Specify the data location if the raw skeletons data are placed somewhere else. T
 4. Then, in `data_gen/`, generate the bone dataset:
 
 ```bash
-python3 ntu_gen_bone_data.py
+python3 ./data_gen/ntu_gen_bone_data.py
 ```
 
 5. Finally, generate the motion data from joints/bones:
 
 ```bash
-python3 ntu_gen_motion_data.py
+python3 ./data_gen/ntu_gen_motion_data.py
 ```
 
 The generation scripts look for generated data in previous step. By default they look at `./data`; change dir configs if needed.

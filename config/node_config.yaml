@@ -1,0 +1,4 @@
+# node_mask: [1, 2, 5, 9, 13, 14, 17, 18, 21] # quarter joint
+# node_mask: [1, 2, 3, 4, 5, 6, 9, 10, 13, 14, 17, 18, 21] # harf joint
+# selected_action: ['A004', 'A005', 'A006', 'A007', 'A008', 'A009', 'A010', 'A027', 'A031', 'A059']
+selected_action: ['A004', 'A005']

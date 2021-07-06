@@ -21,13 +21,12 @@ def rotation_matrix(axis, theta):
 
 
 def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
+    # 벡터의 단위벡터 반환
     return vector / np.linalg.norm(vector)
 
 
 def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2'::
-
             >>> angle_between((1, 0, 0), (0, 1, 0))
             1.5707963267948966
             >>> angle_between((1, 0, 0), (1, 0, 0))
@@ -35,8 +34,10 @@ def angle_between(v1, v2):
             >>> angle_between((1, 0, 0), (-1, 0, 0))
             3.141592653589793
     """
+    # 벡터가 0에 가까우면 두 벡터의 각 = 0으로 처리
     if np.abs(v1).sum() < 1e-6 or np.abs(v2).sum() < 1e-6:
         return 0
+    
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
